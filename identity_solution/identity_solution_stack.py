@@ -147,6 +147,59 @@ class IdentitySolutionStack(core.Stack):
             users=None
         )    
         
+        LOBxDevOpsEngineerPolicy = iam.ManagedPolicy(
+            self, "LOBxDevOpsEngineerPolicy",
+            description="Access to resources needed for LOBx DevOps Engineers",
+            document=None,
+            groups=None,
+            managed_policy_name="LOBxDevOpsEngineerPolicy",
+            path=None,
+            roles=None,
+            statements=[
+                iam.PolicyStatement(effect= 
+                    iam.Effect.ALLOW,
+                    sid = "AllowDevOps",
+                    actions= ["*"],
+                    resources=["*"],
+                    conditions={"ForAllValues:StringEquals": {"aws:ResourceTag/SupportTeam": "DevOps"}})
+            ],
+            users=None
+        )
+
+        NetworkAdministratorPolicy = iam.ManagedPolicy(
+            self, "NetworkAdministratorPolicy",
+            description="Access to network resources and actions",
+            document=None,
+            groups=None,
+            managed_policy_name="NetworkAdministratorPolicy",
+            path=None,
+            roles=None,
+            statements=[
+                iam.PolicyStatement(effect= 
+                    iam.Effect.ALLOW,
+                    sid = "AllowAllForNetworkResources",
+                    actions= ["*"],
+                    resources=["*"],
+                    conditions={"ForAllValues:StringEquals": {"aws:ResourceTag/SupportTeam": "Network"}}),
+                iam.PolicyStatement(effect= 
+                    iam.Effect.ALLOW,
+                    sid = "AllowNetworkActions",
+                    actions= [
+                        "ec2:*Network*",
+                        "ec2:*Address*",
+                        "ec2:*Dhcp*",
+                        "ec2:*Vpc*",
+                        "ec2:*Vpn*",
+                        "ec2:*Route*",
+                        "ec2:*SecurityGroup*",
+                        "ec2:*Subnet*",
+                        "ec2:*Gateway*",
+                    ],
+                    resources=["*"])
+            ],
+            users=None
+        )
+
         roledict = [
             {
                 "name": "AccessAdministrator",
@@ -180,12 +233,12 @@ class IdentitySolutionStack(core.Stack):
             },
             {
                 "name": "LOBx-DevOpsEngineer",
-                "policies": [BreakGlassPolicy],
+                "policies": [LOBxDevOpsEngineerPolicy],
                 "permissions_boundary": None,
             },
             {
                 "name": "NetworkAdministrator",
-                "policies": [BreakGlassPolicy],
+                "policies": [NetworkAdministratorPolicy],
                 "permissions_boundary": None,
             },
             {
