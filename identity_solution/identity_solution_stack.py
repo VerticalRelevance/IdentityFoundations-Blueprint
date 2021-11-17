@@ -1,27 +1,43 @@
 from aws_cdk import (
     aws_iam as iam,
-    aws_sqs as sqs,
-    aws_sns as sns,
-    aws_sns_subscriptions as subs,
     core
 )
 
+import requests
+import re
 
 class IdentitySolutionStack(core.Stack):
 
     def __init__(self, scope: core.Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
         
-        print("Hello World")
+        #Get List of All AWS Services' IAM Prefixes
+        r =requests.get('https://awspolicygen.s3.amazonaws.com/js/policies.js')
+        p = re.compile(r'StringPrefix":"(?P<prefix>[a-z0-9]*)')
+        servicesListWithDups = p.findall(r.text)
+
+        #RemoveDuplicates
+        servicesList = []
+        for i in servicesListWithDups:
+            if i not in servicesList:
+                servicesList.append(i)
+
+
+        print(servicesList)
+
+        describeServicesList = []
+        listServicesList = []
+        getServicesList = []
+
+        for service in servicesList:
+            describeServicesList.append(service+":Describe*")
+            listServicesList.append(service+":List*")
+            getServicesList.append(service+":Get*")
 
         FullIAMPolicy = iam.ManagedPolicy(
             self, "FullIAMPolicy",
             description="Full-Control Access to IAM resources, Read Organizations",
-            document=None,
-            groups=None,
             managed_policy_name="FullIAMPolicy",
-            path=None,
-            roles=None,
             statements=[
                 iam.PolicyStatement(effect= 
                     iam.Effect.ALLOW,
@@ -32,17 +48,12 @@ class IdentitySolutionStack(core.Stack):
                     ],
                     resources=["*"])
             ],
-            users=None
         )
 
         ReadIAMPolicy = iam.ManagedPolicy(
             self, "ReadIAMPolicy",
             description="Read Access to IAM resources",
-            document=None,
-            groups=None,
             managed_policy_name="ReadIAMPolicy",
-            path=None,
-            roles=None,
             statements=[
                 iam.PolicyStatement(effect= 
                     iam.Effect.ALLOW,
@@ -52,17 +63,12 @@ class IdentitySolutionStack(core.Stack):
                     ],
                     resources=["*"])
             ],
-            users=None
         )
 
         FullBillingPolicy = iam.ManagedPolicy(
             self, "FullBillingPolicy",
             description="Full-Control Access to Billing resources",
-            document=None,
-            groups=None,
             managed_policy_name="FullBillingPolicy",
-            path=None,
-            roles=None,
             statements=[
                 iam.PolicyStatement(effect= 
                     iam.Effect.ALLOW,
@@ -71,17 +77,12 @@ class IdentitySolutionStack(core.Stack):
                     ],
                     resources=["*"])
             ],
-            users=None
         )
 
         ReadBillingPolicy = iam.ManagedPolicy(
             self, "ReadBillingPolicy",
             description="Read Access to Billing resources",
-            document=None,
-            groups=None,
             managed_policy_name="ReadBillingPolicy",
-            path=None,
-            roles=None,
             statements=[
                 iam.PolicyStatement(effect= 
                     iam.Effect.ALLOW,
@@ -90,71 +91,104 @@ class IdentitySolutionStack(core.Stack):
                     ],
                     resources=["*"])
             ],
-            users=None
         )
 
-        BreakGlassPolicy = iam.ManagedPolicy(
-            self, "BreakGlassPolicy",
-            description="Dedicated to exclusively emergency situations, requires approval",
-            document=None,
-            groups=None,
-            managed_policy_name="BreakGlassPolicy",
-            path=None,
-            roles=None,
+        FullAllExceptBillingPolicy = iam.ManagedPolicy(
+            self, "FullExceptBilling",
+            description="Full Access to all except billing",
+            managed_policy_name="FullExceptBilling",
             statements=[
                 iam.PolicyStatement(effect= 
                     iam.Effect.ALLOW,
                     actions= ["*"],
-                    resources=["*"]),
-                iam.PolicyStatement(effect= 
-                    iam.Effect.DENY,
-                    sid= "DenyBilling",
-                    actions= [
-                        "aws-portal:*"
-                    ],
-                    resources=["*"])
-            ],
-            users=None
-        )    
-
-        CloudAdministratorPolicy = iam.ManagedPolicy(
-            self, "CloudAdministratorPolicy",
-            description="Dedicated to exclusively emergency situations, requires approval",
-            document=None,
-            groups=None,
-            managed_policy_name="CloudAdministratorPolicy",
-            path=None,
-            roles=None,
-            statements=[
-                iam.PolicyStatement(effect= 
-                    iam.Effect.ALLOW,
-                    actions= ["*"],
-                    resources=["*"]),
-                iam.PolicyStatement(effect= 
-                    iam.Effect.DENY,
-                    actions= [
-                        "aws-portal:*"
-                    ],
                     resources=["*"]),
                 iam.PolicyStatement(effect= 
                     iam.Effect.DENY,
                     sid = "DenyBilling",
                     actions= [
-                        "aws-portal:*"
+                        "aws-portal:*",
+                        "cur:*",
+                        "ce:*",
+                        "pricing:*",
+                        "purchase-orders:*"
                     ],
                     resources=["*"])
             ],
-            users=None
         )    
-        
-        LOBxDevOpsEngineerPolicy = iam.ManagedPolicy(
-            self, "LOBxDevOpsEngineerPolicy",
-            description="Access to resources needed for LOBx DevOps Engineers",
-            document=None,
-            groups=None,
-            managed_policy_name="LOBxDevOpsEngineerPolicy",
-            path=None,
-            roles=None,
+
+        DescribeAllExceptBillingPolicy = iam.ManagedPolicy(
+            self, "DescribeAllExceptBilling",
+            description="Describe Access to all except billing",
+            managed_policy_name="DescribeExceptBilling",
+            statements=[
+                iam.PolicyStatement(effect= 
+                    iam.Effect.ALLOW,
+                    actions= describeServicesList,
+                    resources=["*"]),
+                iam.PolicyStatement(effect= 
+                    iam.Effect.DENY,
+                    sid = "DenyBilling",
+                    actions= [
+                        "aws-portal:*",
+                        "cur:*",
+                        "ce:*",
+                        "pricing:*",
+                        "purchase-orders:*"
+                    ],
+                    resources=["*"])
+            ],
+        )
+
+        ListAllExceptBillingPolicy = iam.ManagedPolicy(
+            self, "ListAllExceptBilling",
+            description="List Access to all except billing",
+            managed_policy_name="ListAllExceptBilling",
+            statements=[
+                iam.PolicyStatement(effect= 
+                    iam.Effect.ALLOW,
+                    actions= listServicesList,
+                    resources=["*"]),
+                iam.PolicyStatement(effect= 
+                    iam.Effect.DENY,
+                    sid = "DenyBilling",
+                    actions= [
+                        "aws-portal:*",
+                        "cur:*",
+                        "ce:*",
+                        "pricing:*",
+                        "purchase-orders:*"
+                    ],
+                    resources=["*"])
+            ],
+        )
+
+        GetAllExceptBillingPolicy = iam.ManagedPolicy(
+            self, "GetAllExceptBilling",
+            description="Get Access to all except billing",
+            managed_policy_name="GetAllExceptBilling",
+            statements=[
+                iam.PolicyStatement(effect= 
+                    iam.Effect.ALLOW,
+                    actions= getServicesList,
+                    resources=["*"]),
+                iam.PolicyStatement(effect= 
+                    iam.Effect.DENY,
+                    sid = "DenyBilling",
+                    actions= [
+                        "aws-portal:*",
+                        "cur:*",
+                        "ce:*",
+                        "pricing:*",
+                        "purchase-orders:*"
+                    ],
+                    resources=["*"])
+            ],
+        ) 
+
+        FullDevOpsTeamResourcesPolicy = iam.ManagedPolicy(
+            self, "FullDevOpsTeamResourcesPolicy",
+            description="Access to resources used by DevOps team",
+            managed_policy_name="FullDevOpsTeamResourcesPolicy",
             statements=[
                 iam.PolicyStatement(effect= 
                     iam.Effect.ALLOW,
@@ -163,27 +197,29 @@ class IdentitySolutionStack(core.Stack):
                     resources=["*"],
                     conditions={"ForAllValues:StringEquals": {"aws:ResourceTag/SupportTeam": "DevOps"}})
             ],
-            users=None
         )
-
-        NetworkAdministratorPolicy = iam.ManagedPolicy(
-            self, "NetworkAdministratorPolicy",
-            description="Access to network resources and actions",
-            document=None,
-            groups=None,
-            managed_policy_name="NetworkAdministratorPolicy",
-            path=None,
-            roles=None,
+        FullNetworkTeamResourcesPolicy = iam.ManagedPolicy(
+            self, "FullNetworkTeamResourcesPolicy",
+            description="Access to all actions for network team's resources",
+            managed_policy_name="FullNetworkTeamResourcesPolicy",
             statements=[
                 iam.PolicyStatement(effect= 
                     iam.Effect.ALLOW,
-                    sid = "AllowAllForNetworkResources",
+                    sid = "AllowAllActionsForNetworkResources",
                     actions= ["*"],
                     resources=["*"],
                     conditions={"ForAllValues:StringEquals": {"aws:ResourceTag/SupportTeam": "Network"}}),
+            ],
+        )
+
+        FullNetworkActionsPolicy = iam.ManagedPolicy(
+            self, "FullNetworkActionsPolicy",
+            description="Access to all network actions on all resources",
+            managed_policy_name="FullNetworkActionsPolicy",
+            statements=[
                 iam.PolicyStatement(effect= 
                     iam.Effect.ALLOW,
-                    sid = "AllowNetworkActions",
+                    sid = "AllowAllNetworkActions",
                     actions= [
                         "ec2:*Network*",
                         "ec2:*Address*",
@@ -197,7 +233,89 @@ class IdentitySolutionStack(core.Stack):
                     ],
                     resources=["*"])
             ],
-            users=None
+        )
+
+        ReadNetworkActionsPolicy = iam.ManagedPolicy(
+            self, "ReadNetworkActionsPolicy",
+            description="Read access to all network resources",
+            managed_policy_name="ReadNetworkActionsPolicy",
+            statements=[
+                iam.PolicyStatement(effect= 
+                    iam.Effect.ALLOW,
+                    sid = "AllowAllReadNetworkActions",
+                    actions= [
+                        "ec2:Describe*Network*",
+                        "ec2:Describe*Address*",
+                        "ec2:Describe*Dhcp*",
+                        "ec2:Describe*Vpc*",
+                        "ec2:Describe*Vpn*",
+                        "ec2:Describe*Route*",
+                        "ec2:Describe*SecurityGroup*",
+                        "ec2:Describe*Subnet*",
+                        "ec2:Describe*Gateway*",
+                    ],
+                    resources=["*"])
+            ],
+        )
+
+        FullOrganizationsPolicy = iam.ManagedPolicy(
+            self, "FullOrganizationsPolicy",
+            description="Access to all Organizations actions",
+            managed_policy_name="FullOrganizationsPolicy",
+            statements=[
+                iam.PolicyStatement(effect= 
+                    iam.Effect.ALLOW,
+                    sid = "AllowAllOrganizatrionsActions",
+                    actions= [
+                        "organizations:*"
+                    ],
+                    resources=["*"])
+            ],
+        )
+
+        FullAccountPolicy = iam.ManagedPolicy(
+            self, "FullAccountPolicy",
+            description="Access to all account actions",
+            managed_policy_name="FullAccountPolicy",
+            statements=[
+                iam.PolicyStatement(effect= 
+                    iam.Effect.ALLOW,
+                    sid = "AllowFullAccount",
+                    actions= [
+                        "account:*"
+                    ],
+                    resources=["*"])
+            ],
+        )
+
+        ReadOrganizationsPolicy = iam.ManagedPolicy(
+            self, "ReadOrganizationsPolicy",
+            description="Read access to all Organizations actions",
+            managed_policy_name="ReadOrganizationsPolicy",
+            statements=[
+                iam.PolicyStatement(effect= 
+                    iam.Effect.ALLOW,
+                    sid = "ReadOrganizations",
+                    actions= [
+                        "organizations:*"
+                    ],
+                    resources=["*"])
+            ],
+        )
+
+        ReadAccountPolicy = iam.ManagedPolicy(
+            self, "ReadAccountPolicy",
+            description="Read access to all account actions",
+            managed_policy_name="ReadAccountPolicy",
+            statements=[
+                iam.PolicyStatement(effect= 
+                    iam.Effect.ALLOW,
+                    sid = "ReadAccount",
+                    actions= [
+                        "account:*"
+                    ],
+                    resources=["*"])
+            ],
         )
 
         roledict = [
@@ -223,47 +341,47 @@ class IdentitySolutionStack(core.Stack):
             },
             {
                 "name": "Break-Glass",
-                "policies": [BreakGlassPolicy],
+                "policies": [FullAllExceptBillingPolicy],
                 "permissions_boundary": None,
             },
             {
                 "name": "CloudAdministrator",
-                "policies": [CloudAdministratorPolicy],
-                "permissions_boundary": CloudAdministratorPolicy,
+                "policies": [FullAllExceptBillingPolicy],
+                "permissions_boundary": FullAllExceptBillingPolicy,
             },
             {
                 "name": "LOBx-DevOpsEngineer",
-                "policies": [LOBxDevOpsEngineerPolicy],
+                "policies": [FullDevOpsTeamResourcesPolicy],
                 "permissions_boundary": None,
             },
             {
                 "name": "NetworkAdministrator",
-                "policies": [NetworkAdministratorPolicy],
+                "policies": [FullNetworkActionsPolicy,FullNetworkTeamResourcesPolicy],
                 "permissions_boundary": None,
             },
             {
                 "name": "NetworkAuditor",
-                "policies": [BreakGlassPolicy],
+                "policies": [ReadNetworkActionsPolicy],
                 "permissions_boundary": None,
             },
             {
                 "name": "PlatformAdministrator",
-                "policies": [BreakGlassPolicy],
+                "policies": [FullIAMPolicy, FullAccountPolicy, FullOrganizationsPolicy],
                 "permissions_boundary": None,
             },
             {
                 "name": "PlatformAuditor",
-                "policies": [BreakGlassPolicy],
+                "policies": [ReadIAMPolicy, ReadAccountPolicy, ReadOrganizationsPolicy],
                 "permissions_boundary": None,
             },
             {
                 "name": "SecurityAdministrator",
-                "policies": [BreakGlassPolicy],
-                "permissions_boundary": None,
+                "policies": [FullAllExceptBillingPolicy],
+                "permissions_boundary": FullAllExceptBillingPolicy,
             },
             {
                 "name": "SecurityAuditor",
-                "policies": [BreakGlassPolicy],
+                "policies": [DescribeAllExceptBillingPolicy,GetAllExceptBillingPolicy,ListAllExceptBillingPolicy],
                 "permissions_boundary": None,
             },
         ]
