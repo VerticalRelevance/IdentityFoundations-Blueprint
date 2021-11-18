@@ -297,7 +297,9 @@ class IdentitySolutionStack(core.Stack):
                     iam.Effect.ALLOW,
                     sid = "ReadOrganizations",
                     actions= [
-                        "organizations:*"
+                        "organizations:Describe*",
+                        "organizations:List*",
+                        "organizations:Get*"
                     ],
                     resources=["*"])
             ],
@@ -312,7 +314,9 @@ class IdentitySolutionStack(core.Stack):
                     iam.Effect.ALLOW,
                     sid = "ReadAccount",
                     actions= [
-                        "account:*"
+                        "account:Describe*",
+                        "account:List*",
+                        "account:Get*"
                     ],
                     resources=["*"])
             ],
