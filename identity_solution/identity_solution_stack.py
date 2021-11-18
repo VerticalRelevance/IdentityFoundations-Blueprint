@@ -3,36 +3,40 @@ from aws_cdk import (
     core
 )
 
-import requests
 import re
+
+from policy_sentry.querying.actions import get_actions_with_access_level
+
 
 class IdentitySolutionStack(core.Stack):
 
     def __init__(self, scope: core.Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
         
-        #Get List of All AWS Services' IAM Prefixes
-        r =requests.get('https://awspolicygen.s3.amazonaws.com/js/policies.js')
-        p = re.compile(r'StringPrefix":"(?P<prefix>[a-z0-9]*)')
-        servicesListWithDups = p.findall(r.text)
+        ### slimReadActions is a list of slimmed version of all the read-level actions in AWS
+        readActions = get_actions_with_access_level('all', 'Read')
+        while("" in readActions) :
+            readActions.remove("")
 
-        #RemoveDuplicates
-        servicesList = []
-        for i in servicesListWithDups:
-            if i not in servicesList:
-                servicesList.append(i)
+        slimReadActionsWithDups = []
+        #Example: action = "waf:GetGeoMatchSet"
+        for action in readActions:
+            #Example: service = "waf:"
+            service = re.findall('[a-z]*:', action)[0]
+            #Example: actionlist = ['Get', 'Geo', 'Match', 'Set']
+            actionlist= (re.findall('[A-Z][^A-Z]*', action))
+            if service != ":" and actionlist != []:
+                #Example: actionitem = waf:Get*
+                actionitem = service + re.findall('[A-Z][^A-Z]*', action)[0] + "*"
+                slimReadActionsWithDups.append(actionitem)
 
+        slimReadActions = []
+        for i in slimReadActionsWithDups:
+            if i not in slimReadActions:
+                slimReadActions.append(i)
 
-        print(servicesList)
-
-        describeServicesList = []
-        listServicesList = []
-        getServicesList = []
-
-        for service in servicesList:
-            describeServicesList.append(service+":Describe*")
-            listServicesList.append(service+":List*")
-            getServicesList.append(service+":Get*")
+        slimReadActions1=slimReadActions[0:int(len(slimReadActions)/2)]
+        slimReadActions2=slimReadActions[int(len(slimReadActions)/2):]
 
         FullIAMPolicy = iam.ManagedPolicy(
             self, "FullIAMPolicy",
@@ -116,60 +120,37 @@ class IdentitySolutionStack(core.Stack):
             ],
         )    
 
-        DescribeAllExceptBillingPolicy = iam.ManagedPolicy(
-            self, "DescribeAllExceptBilling",
-            description="Describe Access to all except billing",
-            managed_policy_name="DescribeExceptBilling",
-            statements=[
-                iam.PolicyStatement(effect= 
-                    iam.Effect.ALLOW,
-                    actions= describeServicesList,
-                    resources=["*"]),
-                iam.PolicyStatement(effect= 
-                    iam.Effect.DENY,
-                    sid = "DenyBilling",
-                    actions= [
-                        "aws-portal:*",
-                        "cur:*",
-                        "ce:*",
-                        "pricing:*",
-                        "purchase-orders:*"
-                    ],
-                    resources=["*"])
-            ],
-        )
-
-        ListAllExceptBillingPolicy = iam.ManagedPolicy(
-            self, "ListAllExceptBilling",
-            description="List Access to all except billing",
-            managed_policy_name="ListAllExceptBilling",
-            statements=[
-                iam.PolicyStatement(effect= 
-                    iam.Effect.ALLOW,
-                    actions= listServicesList,
-                    resources=["*"]),
-                iam.PolicyStatement(effect= 
-                    iam.Effect.DENY,
-                    sid = "DenyBilling",
-                    actions= [
-                        "aws-portal:*",
-                        "cur:*",
-                        "ce:*",
-                        "pricing:*",
-                        "purchase-orders:*"
-                    ],
-                    resources=["*"])
-            ],
-        )
-
-        GetAllExceptBillingPolicy = iam.ManagedPolicy(
-            self, "GetAllExceptBilling",
+        ReadAllExceptBillingPolicy1 = iam.ManagedPolicy(
+            self, "ReadAllExceptBillingPolicy1",
             description="Get Access to all except billing",
-            managed_policy_name="GetAllExceptBilling",
+            managed_policy_name="ReadAllExceptBillingPolicy1",
             statements=[
                 iam.PolicyStatement(effect= 
                     iam.Effect.ALLOW,
-                    actions= getServicesList,
+                    actions= slimReadActions1,
+                    resources=["*"]),
+                iam.PolicyStatement(effect= 
+                    iam.Effect.DENY,
+                    sid = "DenyBilling",
+                    actions= [
+                        "aws-portal:*",
+                        "cur:*",
+                        "ce:*",
+                        "pricing:*",
+                        "purchase-orders:*"
+                    ],
+                    resources=["*"])
+            ],
+        ) 
+
+        ReadAllExceptBillingPolicy2 = iam.ManagedPolicy(
+            self, "ReadAllExceptBillingPolicy2",
+            description="Get Access to all except billing",
+            managed_policy_name="ReadAllExceptBillingPolicy2",
+            statements=[
+                iam.PolicyStatement(effect= 
+                    iam.Effect.ALLOW,
+                    actions= slimReadActions2,
                     resources=["*"]),
                 iam.PolicyStatement(effect= 
                     iam.Effect.DENY,
@@ -385,7 +366,8 @@ class IdentitySolutionStack(core.Stack):
             },
             {
                 "name": "SecurityAuditor",
-                "policies": [DescribeAllExceptBillingPolicy,GetAllExceptBillingPolicy,ListAllExceptBillingPolicy],
+                #"policies": [DescribeAllExceptBillingPolicy,GetAllExceptBillingPolicy,ListAllExceptBillingPolicy],
+                "policies": [ReadAllExceptBillingPolicy1,ReadAllExceptBillingPolicy2],
                 "permissions_boundary": None,
             },
         ]
