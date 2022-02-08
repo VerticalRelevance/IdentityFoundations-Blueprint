@@ -2,10 +2,10 @@
 
 from aws_cdk import core
 
-from identity_solution.identity_solution_stack import IdentitySolutionStack
+from identity_solution.basic_roles import BasicRolesStack
 
 
 app = core.App()
-IdentitySolutionStack(app, "identity-solution")
+BasicRolesStack(app, "basic-roles")
 
 app.synth()

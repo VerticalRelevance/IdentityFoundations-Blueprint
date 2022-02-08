@@ -8,7 +8,7 @@ import re
 from policy_sentry.querying.actions import get_actions_with_access_level
 
 
-class IdentitySolutionStack(core.Stack):
+class BasicRolesStack(core.Stack):
 
     def __init__(self, scope: core.Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
