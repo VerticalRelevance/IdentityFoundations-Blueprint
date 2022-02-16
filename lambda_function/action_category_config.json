@@ -1,0 +1,6 @@
+{
+    "Kubernetes": "eks, ec2",
+    "Storage": "s3, efs, ebs",
+    "Logging": "cloudwatch, cloudtrail",
+    "IAM": "iam"
+}
