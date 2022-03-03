@@ -37,7 +37,7 @@ def lambda_handler(event, context):
         # TargetArn='string',
         # PhoneNumber='string',
         Message=message,
-        Subject='RoleAlerting',
+        Subject='High-Privilege Role Alerting',
         # MessageStructure='string',
         # MessageAttributes={
         #     'string': {

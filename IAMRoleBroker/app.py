@@ -4,8 +4,8 @@ from aws_cdk import core
 
 #from identity_solution.basic_roles import BasicRolesStack
 #from identity_solution.brpg_lambda import BRPGStack
-from identity_solution.sc_lambda import BRPGCatalogStack
+from iamrolebroker.sc_lambda import IAMRoleBrokerCatalogStack
 
 app = core.App()
-BRPGCatalogStack(app,"brpg-catalog")
+IAMRoleBrokerCatalogStack(app,"iamrolebroker-catalog")
 app.synth()

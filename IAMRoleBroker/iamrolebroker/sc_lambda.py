@@ -15,8 +15,8 @@ from aws_cdk import (
     core
 )
 
-class BRPGLambda(servicecatalog.ProductStack):
-    def __init__(self, scope, id, ps_layer, cfnresponse_layer, brpg_lambda_code_bucket, brpg_lambda_code_bucket_key, BRPGLambdaExecutionRole):
+class IAMRoleBrokerLambda(servicecatalog.ProductStack):
+    def __init__(self, scope, id, ps_layer, cfnresponse_layer, lambda_code_bucket, lambda_code_bucket_key, IAMRoleBrokerLambdaExecutionRole):
         super().__init__(scope, id)
 
         access_level_parameter = core.CfnParameter(self, 
@@ -43,14 +43,14 @@ class BRPGLambda(servicecatalog.ProductStack):
             description="Would you like a role and a policy generated, or just a policy? ('Role', 'Policy')",
             default="Role").value_as_string
 
-        BRPGLambda=lambda_.Function(self,
-            "BRPGLambda",
-            role=BRPGLambdaExecutionRole,
+        IAMRoleBrokerLambda=lambda_.Function(self,
+            "IAMRoleBrokerLambda",
+            role=IAMRoleBrokerLambdaExecutionRole,
             runtime=lambda_.Runtime.PYTHON_3_9,
-            handler="lambda_function.brpg_lambda_code.lambda_handler",
+            handler="lambda_function.lambda_code.lambda_handler",
             code=lambda_.Code.from_bucket(
-                bucket=brpg_lambda_code_bucket,
-                key=brpg_lambda_code_bucket_key
+                bucket=lambda_code_bucket,
+                key=lambda_code_bucket_key
             ),
             environment={
                 "ACCESS_LEVEL": access_level_parameter,
@@ -64,43 +64,43 @@ class BRPGLambda(servicecatalog.ProductStack):
             ]
         )
 
-        cloudformation.CfnCustomResource(self, "BRPGCfnCustomResource",
-            service_token=BRPGLambda.function_arn
+        cloudformation.CfnCustomResource(self, "IAMRoleBrokerCfnCustomResource",
+            service_token=IAMRoleBrokerLambda.function_arn
         )
 
-        core.CfnOutput(self, "BRPGLambdaARN", value=BRPGLambda.function_arn)
+        core.CfnOutput(self, "IAMRoleBrokerLambdaARN", value=IAMRoleBrokerLambda.function_arn)
 
-class BRPGCatalogStack(core.Stack):
+class IAMRoleBrokerCatalogStack(core.Stack):
 
     def __init__(self, scope: core.Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        brpg_lambda_code_source_path = "lambda_function"
-        brpg_lambda_code_bucket_name = "brpg-lambda-code-bucket"
-        brpg_lambda_code_bucket_key = "brpg_lambda_code.zip"
-        brpg_lambda_code_bucket_key2 = "brpg_lambda_code2.zip"
+        lambda_code_source_path = "lambda_function"
+        lambda_code_bucket_name = "iamrolebroker-lambda-code-bucket"
+        lambda_code_bucket_key = "lambda_code.zip"
+        lambda_code_bucket_key2 = "lambda_code2.zip"
 
-        zf = ZipFile(brpg_lambda_code_bucket_key, "w")
-        for dirname, subdirs, files in os.walk(brpg_lambda_code_source_path):
+        zf = ZipFile(lambda_code_bucket_key, "w")
+        for dirname, subdirs, files in os.walk(lambda_code_source_path):
             zf.write(dirname)
             for filename in files:
                 zf.write(os.path.join(dirname, filename))
         zf.close()
 
-        ZipFile(brpg_lambda_code_bucket_key2, mode='w').write(brpg_lambda_code_bucket_key)
+        ZipFile(lambda_code_bucket_key2, mode='w').write(lambda_code_bucket_key)
         
-        brpg_lambda_code_bucket = s3.Bucket(self, brpg_lambda_code_bucket_name, bucket_name=brpg_lambda_code_bucket_name)
-        s3deploy.BucketDeployment(self, "BRPGLambdaCodeSource",
-            sources=[s3deploy.Source.asset(brpg_lambda_code_bucket_key2)],
-            destination_bucket=brpg_lambda_code_bucket,
+        lambda_code_bucket = s3.Bucket(self, lambda_code_bucket_name, bucket_name=lambda_code_bucket_name)
+        s3deploy.BucketDeployment(self, "IAMRoleBrokerLambdaCodeSource",
+            sources=[s3deploy.Source.asset(lambda_code_bucket_key2)],
+            destination_bucket=lambda_code_bucket,
         )
 
-        brpg_lambda_execution_role_name = "BRPGLambdaExecutionRole"
-        brpg_lambda_execution_policy_name = "BRPGLambdaExecutionPolicy"
+        lambda_execution_role_name = "IAMRoleBrokerLambdaExecutionRole"
+        lambda_execution_policy_name = "IAMRoleBrokerLambdaExecutionPolicy"
 
-        BRPGLambdaExecutionPolicy = iam.ManagedPolicy(
-            self, brpg_lambda_execution_policy_name,
-            managed_policy_name=brpg_lambda_execution_policy_name,
+        IAMRoleBrokerLambdaExecutionPolicy = iam.ManagedPolicy(
+            self, lambda_execution_policy_name,
+            managed_policy_name=lambda_execution_policy_name,
             statements=[
                 iam.PolicyStatement(effect= 
                     iam.Effect.ALLOW,
@@ -121,13 +121,13 @@ class BRPGCatalogStack(core.Stack):
             ]
         )
 
-        BRPGLambdaExecutionRole = iam.Role(
-            self, brpg_lambda_execution_role_name, 
+        IAMRoleBrokerLambdaExecutionRole = iam.Role(
+            self, lambda_execution_role_name, 
             assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
-            managed_policies=[BRPGLambdaExecutionPolicy],
+            managed_policies=[IAMRoleBrokerLambdaExecutionPolicy],
             max_session_duration=core.Duration.seconds(43200),
             path=None,
-            role_name=brpg_lambda_execution_role_name
+            role_name=lambda_execution_role_name
         )
 
         __dirname = os.getcwd()
@@ -145,18 +145,18 @@ class BRPGCatalogStack(core.Stack):
         )
 
         portfolio = servicecatalog.Portfolio(
-            self, "BRPGPortfolio",
-            display_name="BRPGPortfolio",
+            self, "IAMRoleBrokerPortfolio",
+            display_name="IAMRoleBrokerPortfolio",
             provider_name=" "
         )
 
-        product = servicecatalog.CloudFormationProduct(self, "BRPGLambdaProduct",
-            product_name="BRPGLambda",
+        product = servicecatalog.CloudFormationProduct(self, "IAMRoleBroker",
+            product_name="IAMRoleBroker",
             owner=" ",
             product_versions=[servicecatalog.CloudFormationProductVersion(
                 product_version_name="v0",
                 cloud_formation_template=servicecatalog.CloudFormationTemplate.from_product_stack(
-                    BRPGLambda(self, "BRPGLambda", ps_layer, cfnresponse_layer, brpg_lambda_code_bucket, brpg_lambda_code_bucket_key,BRPGLambdaExecutionRole)
+                    IAMRoleBrokerLambda(self, "IAMRoleBrokerLambda", ps_layer, cfnresponse_layer, lambda_code_bucket, lambda_code_bucket_key,IAMRoleBrokerLambdaExecutionRole)
                 )
             )
             ]

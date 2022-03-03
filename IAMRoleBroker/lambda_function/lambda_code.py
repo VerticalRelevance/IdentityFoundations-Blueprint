@@ -37,32 +37,32 @@ def main_function(event, context):
     
     ### INPUTS:
 
-    brpg_access_level=os.environ['ACCESS_LEVEL']
-    # brpg_access_level = ssm.get_parameters(
+    access_level=os.environ['ACCESS_LEVEL']
+    # access_level = ssm.get_parameters(
     #     Names=[
-    #         'brpg_access_level_test',
+    #         'access_level_test',
     #     ],
     #     WithDecryption=True
     # )["Parameters"][0]["Value"]
-    brpg_team_name=os.environ['TEAM_NAME']
-    # brpg_team_name = ssm.get_parameters(
+    team_name=os.environ['TEAM_NAME']
+    # team_name = ssm.get_parameters(
     #     Names=[
-    #         'brpg_team_name_test',
+    #         'team_name_test',
     #     ],
     #     WithDecryption=True
     # )["Parameters"][0]["Value"]
-    brpg_action_category=os.environ['ACTION_CATEGORY']
-    brpg_role_or_policy=os.environ['ROLE_OR_POLICY']
-    brpg_service_principal= "iam.amazonaws.com"
-    brpg_role_max_session_duration = 43200
+    action_category=os.environ['ACTION_CATEGORY']
+    role_or_policy=os.environ['ROLE_OR_POLICY']
+    service_principal= "iam.amazonaws.com"
+    role_max_session_duration = 43200
     
     timestamp = str(int(time.time()))
 
-    brpg_role_name="BRPG_{}_{}_{}_Role_{}".format(brpg_team_name,brpg_access_level,brpg_action_category, timestamp)
-    brpg_policy_name="BRPG_{}_{}_{}_Policy_{}".format(brpg_team_name,brpg_access_level,brpg_action_category,timestamp)
-    brpg_description= "{} to all {} team's {} resources".format(brpg_access_level,brpg_action_category,brpg_team_name)
+    role_name="IAMRoleBroker_{}_{}_{}_Role_{}".format(team_name,access_level,action_category, timestamp)
+    policy_name="IAMRoleBroker_{}_{}_{}_Policy_{}".format(team_name,access_level,action_category,timestamp)
+    description= "{} to all {} team's {} resources".format(access_level,action_category,team_name)
 
-    print("The BRGPG Lambda will create {} and {}".format(brpg_role_name,brpg_policy_name))
+    print("The BRGPG Lambda will create {} and {}".format(role_name,policy_name))
 
     #constants
     TEAM_SERVICES = {
@@ -80,9 +80,9 @@ def main_function(event, context):
     ### slimActions is a list of slimmed version of all the read-level actions in AWS
     ### slimmed in this context means carefully used * instead of several individual actions
     unprocessedActions = []
-    for service in new_action_config_data[brpg_action_category]:
+    for service in new_action_config_data[action_category]:
         try:
-            for unprocessedAction in get_actions_with_access_level(service, brpg_access_level):
+            for unprocessedAction in get_actions_with_access_level(service, access_level):
                 unprocessedActions.append(unprocessedAction)
         except Exception as e:
             print("While processing {}, the following warning was raised: \n{}".format(service,e))
@@ -110,22 +110,22 @@ def main_function(event, context):
     #slimActions2=slimActions[int(len(slimActions)/2):]
 
     # Create a policy
-    brpg_policy_document = {
+    policy_document = {
         "Version": "2012-10-17",
         "Statement": [
             {
                 "Effect": "Allow",
                 "Action": slimActions,
                 "Resource": "*",
-                "Condition": {"ForAllValues:StringEquals": {"aws:ResourceTag/SupportTeam": brpg_team_name}}
+                "Condition": {"ForAllValues:StringEquals": {"aws:ResourceTag/SupportTeam": team_name}}
             }
         ]
     }
 
-    BRPGPolicy = iam.create_policy(
-        PolicyName=brpg_policy_name,
-        PolicyDocument = json.dumps(brpg_policy_document),
-        Description = brpg_description,
+    IAMRoleBrokerPolicy = iam.create_policy(
+        PolicyName=policy_name,
+        PolicyDocument = json.dumps(policy_document),
+        Description = description,
     )
     assume_role_policy_document = {
         "Version": "2012-10-17",
@@ -133,7 +133,7 @@ def main_function(event, context):
             {
                 "Effect": "Allow",
                 "Principal": {
-                    "Service": brpg_service_principal
+                    "Service": service_principal
                 },
                 "Action": "sts:AssumeRole"
             }
@@ -142,23 +142,23 @@ def main_function(event, context):
 
     response_message = '''The following resources have been made:
     Policy: {}  /  {} 
-    '''.format(brpg_policy_name,BRPGPolicy.arn)
+    '''.format(policy_name,IAMRoleBrokerPolicy.arn)
 
-    if brpg_role_or_policy == "Role":
-        BRPGRole = iam.create_role(
-            RoleName=brpg_role_name, 
+    if role_or_policy == "Role":
+        IAMRoleBrokerRole = iam.create_role(
+            RoleName=role_name, 
             AssumeRolePolicyDocument = json.dumps(assume_role_policy_document),
-            Description=brpg_description, 
-            MaxSessionDuration=brpg_role_max_session_duration,
-            #PermissionsBoundary=json.dumps(brpg_policy_document) 
+            Description=description, 
+            MaxSessionDuration=role_max_session_duration,
+            #PermissionsBoundary=json.dumps(policy_document) 
         )
 
-        BRPGRole.attach_policy(PolicyArn=BRPGPolicy.arn)
+        IAMRoleBrokerRole.attach_policy(PolicyArn=IAMRoleBrokerPolicy.arn)
 
         response_message = '''The following resources have been made:
             Role: {}  /  {}
             Policy: {}  /  {} 
-            '''.format(brpg_role_name,BRPGRole.arn,brpg_policy_name,BRPGPolicy.arn)
+            '''.format(role_name,IAMRoleBrokerRole.arn,policy_name,IAMRoleBrokerPolicy.arn)
     
     print(response_message)
 
