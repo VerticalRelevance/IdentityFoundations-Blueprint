@@ -1,18 +1,16 @@
+# AWS Identity Foundation Repository
 
-# Identity Solutions Blueprint
+This is the Identity Foundations Blueprint repo for Vertical Relevance's AWS Identity Foundation solution. This
+is the repository that will deploy the HighPrivilegeRoleAlerting appliation and the IAMRoleBroker application.
 
-The `cdk.json` file tells the CDK Toolkit how to execute the app.
+## Prior to starting the setup of the CDK environment, ensure that you have cloned this repo.
 
-This project is set up like a standard Python project.  The initialization process also creates
-a virtualenv within this project, stored under the .venv directory.  To create the virtualenv
-it assumes that there is a `python3` executable in your path with access to the `venv` package.
-If for any reason the automatic creation of the virtualenv fails, you can create the virtualenv
-manually once the init process completes.
+## Follow the setup steps below to properly configure the environment and first deployment of the infrastructure.
 
 To manually create a virtualenv on MacOS and Linux:
 
 ```
-$ python -m venv .venv
+$ python3 -m venv .venv
 ```
 
 After the init process completes and the virtualenv is created, you can use the following
@@ -22,7 +20,7 @@ step to activate your virtualenv.
 $ source .venv/bin/activate
 ```
 
-If you are a Windows platform, you would activate the virtualenv like this:
+If you are on a Windows platform, you would activate the virtualenv like this:
 
 ```
 % .venv\Scripts\activate.bat
@@ -34,25 +32,28 @@ Once the virtualenv is activated, you can install the required dependencies.
 $ pip install -r requirements.txt
 ```
 
-At this point you can now synthesize the CloudFormation template for this code.
+Bootstrap the cdk app.
 
 ```
-$ cdk synth
+cdk bootstrap
 ```
 
-You can now begin exploring the source code, contained in the hello directory.
-There is also a very trivial test included that can be run like this:
+At this point you can deploy the CDK app for this blueprint.
 
 ```
-$ pytest
+$ cdk deploy --all
 ```
 
-To add additional dependencies, for example other CDK libraries, just add to
-your requirements.txt file and rerun the `pip install -r requirements.txt`
-command.
+## Development/Contribution
 
-## Tutorial  
-See [this useful workshop](https://cdkworkshop.com/30-python.html) on working with the AWS CDK for Python projects.
+To add additional dependencies, for example other CDK libraries, just add
+them to your `requirements.txt` file and rerun the `pip install -r requirements.txt`
+command. It is preferable to use `pip freeze -r requirements.txt > requirements.txt`
+to generate `requirements.txt` with every required package and the required
+version of each rather than adding the package to requirements.txt without a
+version specfifier. Just make sure to edit the `-e <github URL>` line to be `-e .`
+before committing, since `pip freeze` freezes the exact GitHub commit hash URL for
+installation, which could break your setup in the future.
 
 ## Useful commands
 
@@ -61,5 +62,3 @@ See [this useful workshop](https://cdkworkshop.com/30-python.html) on working wi
  * `cdk deploy`      deploy this stack to your default AWS account/region
  * `cdk diff`        compare deployed stack with current state
  * `cdk docs`        open CDK documentation
-
-Enjoy!
