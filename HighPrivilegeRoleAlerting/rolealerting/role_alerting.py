@@ -10,7 +10,7 @@ from zipfile import ZipFile
 from aws_cdk import (
     aws_iam as iam,
     aws_s3 as s3,
-    aws_s3_assets as s3_assets,
+    #aws_s3_assets as s3_assets,
     aws_s3_deployment as s3deploy,
     aws_lambda as lambda_,
     aws_sqs as sqs,
