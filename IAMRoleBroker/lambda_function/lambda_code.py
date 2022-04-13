@@ -62,7 +62,7 @@ def main_function(event, context):
     policy_name="IAMRoleBroker_{}_{}_{}_Policy_{}".format(team_name,access_level,action_category,timestamp)
     description= "{} to all {} team's {} resources".format(access_level,action_category,team_name)
 
-    print("The BRGPG Lambda will create {} and {}".format(role_name,policy_name))
+    print("The IAM Role Broker Lambda will create {} and {}".format(role_name,policy_name))
 
     #constants
     TEAM_SERVICES = {
