@@ -1,6 +1,37 @@
 
 # Identity Solutions Blueprint
 
+## Code Walkthrough
+
+### app.py
+ 
+app.py initializes the CDK stack and calls the IAMRoleBrokerCatalogStack class with an input value of the app intialization and the name of the cdk stack
+
+### sc_lambda.py
+
+sc_lambda.py includes 2 classes:
+
+* IAMRoleBrokerCatalogStack
+* * Creates a s3 bucket for the lambda code from the lambda_function directory, and uploads it.
+* * Creates a policy and role for the lambda execution
+* * Creates the layers for Policy Sentry and CfnResponse
+* * Creates the portfolio and product for the actual Service Catalog Product, with the cloudformation template coming from the IAMRoleBrokerLambda Class 
+
+* IAMRoleBrokerLambda
+* * Creates the lambda function from the lambda_function directory, with environment variables set to the inputs of the service catalog product
+
+### lambda_function/lambda_code.py
+
+Generates the list of actions via PolicySentry and creates the role and policy, as specified via the service catalog product's inputs
+
+### lambda_function/action_category_config.json
+
+One of the inputs of the service catalog products is the "categories" of actions the role should have access to. I.e. Kubernetes, storage, logging, IAM etc.
+
+This must be pre-configured with the client before rollout
+
+## Setup
+
 The `cdk.json` file tells the CDK Toolkit how to execute the app.
 
 This project is set up like a standard Python project.  The initialization process also creates
