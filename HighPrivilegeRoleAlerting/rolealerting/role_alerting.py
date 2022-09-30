@@ -149,7 +149,7 @@ class RoleAlertingStack(servicecatalog.ProductStack):
             "Email",
             type="String",
             description="Where would you like alerts to be sent to?", # (Comma seperated list, such as 'joe@abc.com,bob@abc.com')",
-            default="ebegalka@verticalrelevance.com"
+            default="email@email.com"
         ).value_as_string
 
         # email_parameter2 = core.CfnParameter(self, 
